@@ -78,6 +78,7 @@ import {
   type Sandbox,
 } from './data';
 import { toggleEnterpriseTheme } from './theme';
+import Monitoring, { monitorPages } from './Monitoring';
 
 const Context = createContext<{
   data: Sandbox;
@@ -187,6 +188,9 @@ export default function EnterpriseApp() {
     }
   });
   const [drawer, setDrawer] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState(false);
   const { dialog, confirmAction } = useDialogs();
   const navigate = useNavigate();
   const location = useLocation();
@@ -233,6 +237,15 @@ export default function EnterpriseApp() {
       name: tr('风险处置', 'Risk response'),
       icon: ShieldCheck,
       items: [['/risk', tr('告警中心', 'Incidents')]],
+    },
+    {
+      path: '/monitoring/overview',
+      name: tr('监控中心', 'Monitoring'),
+      icon: Activity,
+      items: monitorPages.map(([key, zh, en]) => [
+        `/monitoring/${key}`,
+        tr(zh, en),
+      ]),
     },
     {
       path: '/inventory',
@@ -321,24 +334,78 @@ export default function EnterpriseApp() {
           </h2>
           <p className="ex-muted">
             {tr(
-              '欢迎进入企业运维演示工作台',
-              'Welcome to your enterprise operations demo',
+              '欢迎登录企业运维工作台',
+              'Welcome to your enterprise operations workspace',
             )}
           </p>
           <Card>
-            <Chip tone="info">
-              {tr('浏览器演示沙盘', 'Browser demonstration sandbox')}
-            </Chip>
-            <p>
-              {tr(
-                '使用虚构企业数据体验操作流程，无需账号。数据仅保存在本浏览器，可随时恢复。',
-                'Explore fictional enterprise data without an account. Changes stay in this browser and can be reset.',
+            <form
+              className="ex-login-fields"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (username.trim().length < 3 || password.length < 6) {
+                  setLoginError(true);
+                  return;
+                }
+                setLoginError(false);
+                setPassword('');
+                enter();
+              }}
+            >
+              <Label htmlFor="login-account">{tr('账号', 'Account')}</Label>
+              <Input
+                id="login-account"
+                name="username"
+                autoComplete="username"
+                required
+                minLength={3}
+                maxLength={64}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder={tr(
+                  '请输入账号（至少 3 位）',
+                  'Account (at least 3 characters)',
+                )}
+                aria-describedby="login-note"
+                aria-invalid={loginError}
+              />
+              <Label htmlFor="login-password">{tr('密码', 'Password')}</Label>
+              <Input
+                id="login-password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                minLength={6}
+                maxLength={128}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={tr(
+                  '请输入密码（至少 6 位）',
+                  'Password (at least 6 characters)',
+                )}
+                aria-describedby="login-note"
+                aria-invalid={loginError}
+              />
+              {loginError && (
+                <p role="alert">
+                  {tr(
+                    '账号至少 3 位，密码至少 6 位，请检查输入。',
+                    'Use an account of at least 3 characters and a password of at least 6 characters.',
+                  )}
+                </p>
               )}
-            </p>
-            <Button variant="primary" onClick={enter} className="w-full">
-              {tr('进入演示', 'Enter demo')}
-              <ArrowRight size={16} />
-            </Button>
+              <Button type="submit" variant="primary" className="w-full">
+                {tr('登录', 'Sign in')}
+                <ArrowRight size={16} />
+              </Button>
+              <small id="login-note" className="ex-muted">
+                {tr(
+                  '本地表单校验，不提供服务端身份认证；请勿输入真实系统密码。',
+                  'Local form validation only; no server authentication. Do not enter passwords used by other systems.',
+                )}
+              </small>
+            </form>
           </Card>
           <Button variant="link" onClick={toggleLocale}>
             {tr('Switch to English', '切换为中文')}
@@ -380,7 +447,7 @@ export default function EnterpriseApp() {
             ))}
           </nav>
           <div className="ex-account">
-            <Chip tone="info">{tr('演示环境', 'Demo environment')}</Chip>
+            <Chip tone="info">{tr('企业工作台', 'Enterprise workspace')}</Chip>
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -392,7 +459,7 @@ export default function EnterpriseApp() {
               >
                 <span className="ex-avatar">XL</span>
                 <span className="ex-account-name">
-                  {tr('演示操作员', 'Demo operator')}
+                  {tr('运维操作员', 'Operations operator')}
                 </span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -409,7 +476,7 @@ export default function EnterpriseApp() {
                   {tr('平台说明', 'About platform')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={exit}>
-                  {tr('退出演示', 'Exit demo')}
+                  {tr('退出登录', 'Sign out')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -423,9 +490,7 @@ export default function EnterpriseApp() {
               </span>
               <div>
                 <strong>{tr('星澜企业', 'Starlane Enterprise')}</strong>
-                <small>
-                  {tr('示例企业空间', 'Sample enterprise workspace')}
-                </small>
+                <small>{tr('企业资源空间', 'Enterprise workspace')}</small>
               </div>
             </div>
             <p className="ex-side-label">{current.name}</p>
@@ -440,8 +505,8 @@ export default function EnterpriseApp() {
             <div className="ex-sidebar-bottom">
               <div className="ex-live-dot" />
               {tr(
-                '全部操作仅影响演示数据',
-                'All actions affect demo data only',
+                '本地样本快照 · 独立存储',
+                'Local sample snapshots · Isolated storage',
               )}
               <hr />
               <a href="/enterprise-manual.docx" download>
@@ -449,7 +514,7 @@ export default function EnterpriseApp() {
                 {tr('下载操作手册', 'Download user manual')}
               </a>
               <Link to="/about">
-                {tr('平台说明与开源声明', 'About & open source')}
+                {tr('平台说明与软件许可', 'About & licenses')}
               </Link>
             </div>
           </aside>
@@ -496,6 +561,16 @@ export default function EnterpriseApp() {
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/inventory/:id" element={<ResourceDetail />} />
                 <Route path="/observations" element={<Metrics />} />
+                <Route
+                  path="/monitoring/:category"
+                  element={
+                    <Monitoring
+                      key={location.pathname}
+                      resources={data.resources}
+                      anchor={data.anchor}
+                    />
+                  }
+                />
                 <Route path="/intelligence" element={<Assistant />} />
                 <Route path="/automation" element={<Automation />} />
                 <Route path="/executions" element={<Executions />} />
@@ -507,10 +582,7 @@ export default function EnterpriseApp() {
               <footer className="ex-footer">
                 <span>ENTERPRISE AI · OPERATIONS WORKSPACE</span>
                 <span>
-                  {tr(
-                    '虚构数据 · 安全演示 · 本地保存',
-                    'Fictional data · Safe simulation · Local storage',
-                  )}
+                  {tr('数据快照 · 本地保存', 'Data snapshots · Local storage')}
                 </span>
               </footer>
             </main>
@@ -949,10 +1021,7 @@ function IncidentDetail() {
               onClick={async () => {
                 if (
                   await confirmAction(
-                    tr(
-                      '确认关闭这条演示告警？',
-                      'Close this demonstration incident?',
-                    ),
+                    tr('确认关闭这条告警？', 'Close this incident?'),
                   )
                 )
                   commit(updateIncident(data, i.id, 'closed'));
@@ -1276,8 +1345,8 @@ function Assistant() {
       id
         ? answers(id)
         : tr(
-            '当前演示支持高 CPU 排查、接口延迟分析和每日巡检。请选择下方示例问题体验完整分析流程。',
-            'This demo supports high CPU investigation, API latency analysis and daily inspection. Choose a sample question to explore the complete workflow.',
+            '当前支持高 CPU 排查、接口延迟分析和每日巡检。请选择下方问题查看完整分析流程。',
+            'Supports high CPU investigation, API latency analysis and daily inspection. Choose a question to explore the workflow.',
           ),
     );
     setQuestion('');
@@ -1447,8 +1516,8 @@ function Assistant() {
           </div>
           <p className="ex-muted">
             {tr(
-              '回答为预设示例，用于操作演示；请勿用于生产决策。',
-              'Answers are preset examples for demonstrations. Do not use them for production decisions.',
+              '回答为预设分析结果；请勿用于生产决策。',
+              'Answers are preset analysis results. Do not use them for production decisions.',
             )}
           </p>
         </Card>
@@ -1478,7 +1547,7 @@ function Automation() {
     setPending(id);
     const ok = await confirmAction(
       tr(
-        '开始模拟执行？仅生成本浏览器的演示记录，不操作真实设备。',
+        '开始模拟执行？仅生成本浏览器的执行记录，不操作真实设备。',
         'Start simulated execution? This only creates a record in this browser and never operates real devices.',
       ),
     );
@@ -1791,8 +1860,8 @@ function About() {
       <Heading
         title={tr('平台说明', 'About the platform')}
         subtitle={tr(
-          '版本、演示边界与开源声明',
-          'Version, demonstration boundaries and open source notices',
+          '版本、数据范围与软件许可',
+          'Version, data scope and software licenses',
         )}
       />
       <Card>
@@ -1802,14 +1871,14 @@ function About() {
         </h2>
         <p className="ex-muted">
           {tr(
-            '独立定制演示版 · 浏览器沙盘 v1',
-            'Independent customized demonstration · Browser sandbox v1',
+            '独立定制版本 · 企业运维工作台',
+            'Independent distribution · Enterprise workspace',
           )}
         </p>
         <dl className="ex-details">
           <dt>{tr('运行版本', 'Build version')}</dt>
           <dd>{import.meta.env.VITE_ENTERPRISE_VERSION || 'development'}</dd>
-          <dt>{tr('演示范围', 'Demonstration scope')}</dt>
+          <dt>{tr('功能范围', 'Functional scope')}</dt>
           <dd>
             {tr(
               '虚构资源、模拟告警、预设 AI 结果、本地知识编辑与流程模拟。',
@@ -1819,29 +1888,22 @@ function About() {
           <dt>{tr('数据存储', 'Data storage')}</dt>
           <dd>
             {tr(
-              '仅本浏览器保存，不提供多人共享或真实认证。进入演示不需要密码。',
-              'Saved in this browser only. No shared state or real authentication. No password is required.',
+              '业务数据仅在本浏览器保存。登录仅做本地表单校验，不提供服务端身份认证。',
+              'Business data is saved in this browser. Sign-in validates the local form and does not provide server authentication.',
             )}
           </dd>
         </dl>
-        <h2>{tr('开源声明', 'Open source notices')}</h2>
+        <h2>{tr('软件许可', 'Software licenses')}</h2>
         <p>
           {tr(
-            '本独立定制版本基于 Ongrid 开源项目，不代表上游官方产品，也不暗示其认可或背书。保留原项目及第三方版权声明。本软件不提供担保。',
-            'This independent customized version is based on the Ongrid open source project. It is not an official upstream product and does not imply endorsement. Upstream and third-party copyright notices are retained. This software is provided without warranty.',
+            '本平台为独立定制发行版本。软件许可、第三方版权与来源声明及对应源码可通过以下入口查阅。软件按许可证条款提供，不附带担保。',
+            'This is an independent distribution. Licenses, third-party copyright and source notices, and corresponding source are available below. The software is provided without warranty under its license terms.',
           )}
         </p>
         <div className="ex-actions">
           <a href="/LICENSE.txt">AGPL-3.0-only</a>
           <a href="/THIRD-PARTY-NOTICES.txt">
-            {tr('第三方声明', 'Third-party notices')}
-          </a>
-          <a
-            href="https://github.com/ongridio/ongrid"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {tr('上游项目', 'Upstream project')}
+            {tr('第三方软件声明', 'Third-party software notices')}
           </a>
           <a href="/enterprise-source.tar.gz" download>
             {tr('下载本版本对应源码', 'Download corresponding source')}
@@ -1858,7 +1920,7 @@ function Missing() {
   const { tr } = useI18n();
   return (
     <EmptyStateCard
-      title={tr('演示记录不存在', 'Demonstration record not found')}
+      title={tr('记录不存在', 'Record not found')}
       hint={tr(
         '记录可能已被恢复示例操作替换。',
         'The record may have been replaced when sample data was restored.',

@@ -162,8 +162,8 @@ export function seed(now = new Date()): Sandbox {
         en: i < 3 ? 'Procedure' : 'Technical guide',
       },
       body: {
-        zh: `适用范围：星澜企业示例环境。\n\n1. 从资源台账确认受影响资源及所属业务。\n2. 对照指标监测查看最近 24 小时趋势，确认异常开始时间。\n3. 在告警中心确认告警并记录影响范围。\n4. 使用智能运维助手分析，必要时模拟执行关联流程。\n5. 核对执行记录与恢复结果，再关闭告警。\n\n验收标准：风险原因和处置建议均有记录。本文为演示知识，不构成真实环境的自动执行授权。`,
-        en: 'Applies to the fictional Starlane enterprise environment.\n\n1. Identify the affected resource and business group in Inventory.\n2. Review the last 24 hours in Metrics and identify the onset.\n3. Acknowledge the incident and record its impact.\n4. Consult the AI assistant and simulate the related workflow.\n5. Review execution records and recovery before closing the incident.\n\nAcceptance: record the cause and recommended action. This demonstration document does not authorize execution in a real environment.',
+        zh: `适用范围：星澜企业示例环境。\n\n1. 从资源台账确认受影响资源及所属业务。\n2. 对照指标监测查看最近 24 小时趋势，确认异常开始时间。\n3. 在告警中心确认告警并记录影响范围。\n4. 使用智能运维助手分析，必要时模拟执行关联流程。\n5. 核对执行记录与恢复结果，再关闭告警。\n\n验收标准：风险原因和处置建议均有记录。本文不构成真实环境的自动执行授权。`,
+        en: 'Applies to the fictional Starlane enterprise environment.\n\n1. Identify the affected resource and business group in Inventory.\n2. Review the last 24 hours in Metrics and identify the onset.\n3. Acknowledge the incident and record its impact.\n4. Consult the AI assistant and simulate the related workflow.\n5. Review execution records and recovery before closing the incident.\n\nAcceptance: record the cause and recommended action. This document does not authorize execution in a real environment.',
       },
     })),
     runs: Array.from({ length: 6 }, (_, i) => ({
@@ -229,7 +229,25 @@ export function load(storage: Pick<Storage, 'getItem'>): {
       )
     )
       throw new Error('Invalid records');
-    return { data, error: false };
+    return {
+      data: {
+        ...data,
+        articles: data.articles.map((article) => ({
+          ...article,
+          body: {
+            zh: article.body.zh.replace(
+              '本文为演示知识，不构成真实环境的自动执行授权。',
+              '本文不构成真实环境的自动执行授权。',
+            ),
+            en: article.body.en.replace(
+              'This demonstration document does not authorize',
+              'This document does not authorize',
+            ),
+          },
+        })),
+      },
+      error: false,
+    };
   } catch {
     return { data: seed(), error: true };
   }

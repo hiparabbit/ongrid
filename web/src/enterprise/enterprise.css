@@ -1118,3 +1118,32 @@ html.enterprise-ui .og-button[data-variant='primary']:hover:not(:disabled) {
   background: #1155c2;
   border-color: #1155c2;
 }
+.ex-monitor-dialog {
+  width: min(1000px, calc(100vw - 32px));
+  max-width: 1000px;
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+}
+.ex-monitor-trends {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.ex-login-fields {
+  display: grid;
+  gap: 12px;
+}
+.ex-login-fields input {
+  width: 100%;
+}
+.ex-drawer {
+  max-height: 70dvh;
+  overflow-y: auto;
+}
+@media (max-width: 767px) {
+  .ex-monitor-trends {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ex-monitor-link { display: inline-flex; align-items: center; gap: 8px; }

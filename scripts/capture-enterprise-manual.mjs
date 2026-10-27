@@ -18,9 +18,11 @@ try {
     await page.screenshot({ path: resolve(output, `${name}.png`), animations: 'disabled', fullPage: true });
   };
   await page.goto('/');
-  await page.getByRole('button', { name: '进入演示', exact: true }).waitFor();
+  await page.getByLabel('账号', {exact:true}).waitFor();
   await shot('login');
-  await page.getByRole('button', { name: '进入演示', exact: true }).click();
+  await page.getByLabel('账号', {exact:true}).fill('operator');
+  await page.getByLabel('密码', {exact:true}).fill('local-input-only');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
   await page.getByRole('heading', { name: '运维总览', exact: true }).waitFor();
   await shot('overview');
   for (const [name, path] of [['assets', '/inventory'], ['metrics', '/observations'], ['incident', '/risk/INC-1201'], ['assistant', '/intelligence'], ['automation', '/automation'], ['executions', '/executions'], ['knowledge', '/library/kb-1'], ['about', '/about']]) {
@@ -29,6 +31,13 @@ try {
     if (name === 'assets') await page.getByRole('searchbox', { name: '搜索资源' }).fill('order');
     if (name === 'assistant') await page.getByRole('button', { name: '高 CPU 应急排查', exact: true }).click();
     await shot(name);
+  }
+  for (const category of ['overview','hosts','applications','databases','network','clusters','availability','logs','rules']) {
+    await page.goto(`/monitoring/${category}`);
+    await page.locator('.ex-content h1').waitFor();
+    if (category === 'logs') await page.getByRole('searchbox', {name:'搜索日志'}).fill('上游请求超时');
+    else if (category !== 'overview' && category !== 'rules') await page.getByRole('searchbox', {name:'搜索监控对象'}).fill('finance');
+    await shot(`monitor-${category}`);
   }
   await page.goto('/overview');
   await page.getByRole('button', { name: '账户菜单' }).click();

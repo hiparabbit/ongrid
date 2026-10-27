@@ -43,8 +43,9 @@ else
     'Bootstrap package: generate the manual from this deployment, then publish the final package',
   );
 const notices = [
-  'Enterprise AI customized demonstration. Based on Ongrid.\nUpstream LICENSE and TRADEMARK.md are included in the corresponding source archive.\nThird-party package notices follow.\n',
+  'Enterprise AI independent distribution. Based on Ongrid.\nUpstream LICENSE and TRADEMARK.md are included in the corresponding source archive.\nThird-party package notices follow.\n',
 ];
+notices.push(readFileSync(resolve(root, 'TRADEMARK.md'), 'utf8'));
 const modules = resolve(root, 'web/node_modules');
 for (const entry of readdirSync(modules).filter((n) => !n.startsWith('.'))) {
   const packages = entry.startsWith('@')

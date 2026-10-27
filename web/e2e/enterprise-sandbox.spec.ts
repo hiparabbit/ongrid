@@ -1,7 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 async function enter(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: '进入演示', exact: true }).click();
+  await page.getByLabel('账号', { exact: true }).fill('operator');
+  await page.getByLabel('密码', { exact: true }).fill('local-input-only');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: '运维总览', exact: true }),
   ).toBeVisible();
@@ -102,9 +104,21 @@ for (const width of [390, 768, 1280, 1920])
           '/library',
           '/library/kb-1',
           '/about',
+          ...[
+            'overview',
+            'hosts',
+            'applications',
+            'databases',
+            'network',
+            'clusters',
+            'availability',
+            'logs',
+            'rules',
+          ].map((c) => `/monitoring/${c}`),
         ]) {
           await page.goto(path);
           await expect(page.locator('.ex-content h1')).toBeVisible();
+          await expect(page.locator('body')).not.toContainText(/演示|ongrid/i);
           // A long resource name exercises wrapping and table boundaries.
           if (path === '/inventory') {
             await page.evaluate(() => {
@@ -152,6 +166,11 @@ for (const width of [390, 768, 1280, 1920])
           path: `../output/playwright/enterprise-${width}-${lang}-${theme}.png`,
           fullPage: true,
         });
+        await page.goto('/monitoring/overview');
+        await page.screenshot({
+          path: `../output/playwright/monitoring-${width}-${lang}-${theme}.png`,
+          fullPage: true,
+        });
         if (width <= 768) {
           await page
             .getByRole('button', {
@@ -164,3 +183,69 @@ for (const width of [390, 768, 1280, 1920])
         }
       });
     }
+
+test('monitor filters, details, log search and persisted rule editing', async ({
+  page,
+}) => {
+  await enter(page);
+  await page.goto('/monitoring/hosts');
+  await expect(page.locator('tbody tr')).toHaveCount(16);
+  await page
+    .getByRole('searchbox', { name: '搜索监控对象' })
+    .fill('no-such-target');
+  await expect(page.getByText('没有匹配对象')).toBeVisible();
+  await page.getByRole('button', { name: '清除筛选' }).click();
+  await page
+    .getByRole('button', { name: '查看详情', exact: true })
+    .first()
+    .click();
+  await expect(page.getByRole('dialog')).toContainText('order-api-01');
+  await expect(page.getByRole('dialog').locator('.ex-chart')).toHaveCount(4);
+  await page.keyboard.press('Escape');
+  await page.goto('/monitoring/logs');
+  await page.getByRole('searchbox', { name: '搜索日志' }).fill('上游请求超时');
+  await expect(page.locator('tbody tr')).toHaveCount(5);
+  await page
+    .getByRole('button', { name: '查看详情', exact: true })
+    .first()
+    .click();
+  await expect(page.getByRole('dialog')).toContainText('trace-00000001');
+  await page.keyboard.press('Escape');
+  await page.goto('/monitoring/rules');
+  await page
+    .getByRole('button', { name: '编辑阈值', exact: true })
+    .first()
+    .click();
+  await page.getByLabel('阈值', { exact: true }).fill('91');
+  await page.getByRole('button', { name: '取消', exact: true }).click();
+  await expect(page.locator('tbody tr').first()).toContainText('85');
+  await page
+    .getByRole('button', { name: '编辑阈值', exact: true })
+    .first()
+    .click();
+  await page.getByLabel('阈值', { exact: true }).fill('91');
+  await page.getByRole('button', { name: '保存规则', exact: true }).click();
+  await page.reload();
+  await expect(page.locator('tbody tr').first()).toContainText('91');
+});
+test('login validates input, discards password and signs out', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  await page.getByLabel('账号', { exact: true }).fill('op');
+  await page.getByLabel('密码', { exact: true }).fill('short');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page.getByLabel('密码', { exact: true })).toBeVisible();
+  await page.getByLabel('账号', { exact: true }).fill('   ');
+  await page.getByLabel('密码', { exact: true }).fill('local-input-only');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('账号至少');
+  await page.getByLabel('账号', { exact: true }).fill('operator');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page.locator('.ex-content h1')).toHaveText('运维总览');
+  expect(
+    await page.evaluate(() => JSON.stringify([localStorage, sessionStorage])),
+  ).not.toContain('local-input-only');
+  await account(page, '退出登录');
+  await expect(page.getByLabel('密码', { exact: true })).toHaveValue('');
+});
