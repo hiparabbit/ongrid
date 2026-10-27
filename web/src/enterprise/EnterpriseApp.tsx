@@ -240,7 +240,7 @@ export default function EnterpriseApp() {
       icon: Layers3,
       items: [
         ['/assets', tr('资源台账', 'Inventory')],
-        ['/metrics', tr('指标监测', 'Metrics')],
+        ['/observations', tr('指标监测', 'Metrics')],
       ],
     },
     {
@@ -495,7 +495,7 @@ export default function EnterpriseApp() {
                 <Route path="/risk/:id" element={<IncidentDetail />} />
                 <Route path="/assets" element={<Inventory />} />
                 <Route path="/assets/:id" element={<ResourceDetail />} />
-                <Route path="/metrics" element={<Metrics />} />
+                <Route path="/observations" element={<Metrics />} />
                 <Route path="/intelligence" element={<Assistant />} />
                 <Route path="/automation" element={<Automation />} />
                 <Route path="/executions" element={<Executions />} />
@@ -1152,7 +1152,7 @@ function ResourceDetail() {
             <dt>{tr('所属空间', 'Workspace')}</dt>
             <dd>{tr('星澜企业示例空间', 'Starlane sample workspace')}</dd>
           </dl>
-          <Link to={`/metrics?resource=${r.id}`}>
+          <Link to={`/observations?resource=${r.id}`}>
             {tr('查看指标监测', 'View metrics')} →
           </Link>
         </Card>

@@ -95,7 +95,7 @@ for (const width of [390, 768, 1280, 1920])
           '/risk/INC-1201',
           '/assets',
           '/assets/res-1',
-          '/metrics',
+          '/observations',
           '/intelligence',
           '/automation',
           '/executions',

@@ -23,7 +23,7 @@ try {
   await page.getByRole('button', { name: '进入演示', exact: true }).click();
   await page.getByRole('heading', { name: '运维总览', exact: true }).waitFor();
   await shot('overview');
-  for (const [name, path] of [['assets', '/assets'], ['metrics', '/metrics'], ['incident', '/risk/INC-1201'], ['assistant', '/intelligence'], ['automation', '/automation'], ['executions', '/executions'], ['knowledge', '/library/kb-1'], ['about', '/about']]) {
+  for (const [name, path] of [['assets', '/assets'], ['metrics', '/observations'], ['incident', '/risk/INC-1201'], ['assistant', '/intelligence'], ['automation', '/automation'], ['executions', '/executions'], ['knowledge', '/library/kb-1'], ['about', '/about']]) {
     await page.goto(path);
     await page.locator('h1').waitFor();
     if (name === 'assets') await page.getByRole('searchbox', { name: '搜索资源' }).fill('order');
