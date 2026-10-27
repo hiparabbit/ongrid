@@ -93,8 +93,8 @@ for (const width of [390, 768, 1280, 1920])
           '/overview',
           '/risk',
           '/risk/INC-1201',
-          '/assets',
-          '/assets/res-1',
+          '/inventory',
+          '/inventory/res-1',
           '/observations',
           '/intelligence',
           '/automation',
@@ -104,9 +104,9 @@ for (const width of [390, 768, 1280, 1920])
           '/about',
         ]) {
           await page.goto(path);
-          await expect(page.locator('h1')).toBeVisible();
+          await expect(page.locator('.ex-content h1')).toBeVisible();
           // A long resource name exercises wrapping and table boundaries.
-          if (path === '/assets') {
+          if (path === '/inventory') {
             await page.evaluate(() => {
               const data = JSON.parse(
                 localStorage.getItem('enterprise-ai.sandbox.v1') || 'null',

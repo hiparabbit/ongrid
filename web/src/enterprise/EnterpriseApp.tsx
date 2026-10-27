@@ -235,11 +235,11 @@ export default function EnterpriseApp() {
       items: [['/risk', tr('告警中心', 'Incidents')]],
     },
     {
-      path: '/assets',
+      path: '/inventory',
       name: tr('资产与观测', 'Assets & metrics'),
       icon: Layers3,
       items: [
-        ['/assets', tr('资源台账', 'Inventory')],
+        ['/inventory', tr('资源台账', 'Inventory')],
         ['/observations', tr('指标监测', 'Metrics')],
       ],
     },
@@ -493,8 +493,8 @@ export default function EnterpriseApp() {
                 <Route path="/overview" element={<Overview />} />
                 <Route path="/risk" element={<Incidents />} />
                 <Route path="/risk/:id" element={<IncidentDetail />} />
-                <Route path="/assets" element={<Inventory />} />
-                <Route path="/assets/:id" element={<ResourceDetail />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/inventory/:id" element={<ResourceDetail />} />
                 <Route path="/observations" element={<Metrics />} />
                 <Route path="/intelligence" element={<Assistant />} />
                 <Route path="/automation" element={<Automation />} />
@@ -667,7 +667,7 @@ function Overview() {
           [
             tr('资源全景', 'Resource landscape'),
             tr('查看业务资产与运行状态', 'Review assets and operating status'),
-            '/assets',
+            '/inventory',
             Server,
           ],
           [
@@ -920,7 +920,7 @@ function IncidentDetail() {
           <dl className="ex-details">
             <dt>{tr('关联资源', 'Affected resource')}</dt>
             <dd>
-              <Link to={`/assets/${resource.id}`}>{resource.name}</Link>
+              <Link to={`/inventory/${resource.id}`}>{resource.name}</Link>
             </dd>
             <dt>{tr('业务域', 'Business group')}</dt>
             <dd>{resource.group}</dd>
@@ -1075,7 +1075,7 @@ function Inventory() {
                 <tr key={r.id}>
                   <td className="ex-resource-name">
                     <Server size={16} />
-                    <Link to={`/assets/${r.id}`}>{r.name}</Link>
+                    <Link to={`/inventory/${r.id}`}>{r.name}</Link>
                   </td>
                   <td>{r.group}</td>
                   <td className="ex-code">{r.ip}</td>
@@ -1097,7 +1097,7 @@ function Inventory() {
                     <Stamp value={r.status} />
                   </td>
                   <td>
-                    <Link to={`/assets/${r.id}`}>
+                    <Link to={`/inventory/${r.id}`}>
                       {tr('查看详情', 'View details')}
                     </Link>
                   </td>
