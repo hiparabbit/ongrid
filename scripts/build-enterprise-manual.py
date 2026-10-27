@@ -1,34 +1,37 @@
-"""Generate the formal Chinese operations manual; render and inspect every page before publication."""
+"""Build the detailed formal operations manual; render and inspect before publication."""
 import argparse
+import json
 from pathlib import Path
 from PIL import Image
 from docx import Document
 from docx.shared import Cm, Pt, RGBColor
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
+from enterprise_manual_content import CHAPTERS
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--screenshots', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 parser.add_argument('--url', default='http://192.168.1.11:18860')
 parser.add_argument('--version', required=True)
+parser.add_argument('--contents-pages', type=Path, help='Verified heading-to-page mapping from the rendered PDF')
 args = parser.parse_args()
+pages = json.loads(args.contents_pages.read_text()) if args.contents_pages else {}
 doc = Document()
 s = doc.sections[0]
 s.page_width, s.page_height = Cm(21), Cm(29.7)
 s.top_margin, s.bottom_margin = Cm(3.7), Cm(3.5)
 s.left_margin, s.right_margin = Cm(2.8), Cm(2.6)
 s.footer_distance = Cm(2.5)
-# GB/T 9704-style typography and hierarchy. Use available serif CJK fallback
-# when the reader does not have the named Chinese typeface installed.
-for name, font, size in [('Normal','仿宋',16),('Title','方正小标宋简体',22),('Heading 1','黑体',16),('Heading 2','楷体',16),('Caption','宋体',12)]:
+for name, font, size, line in [('Normal','仿宋',16,28),('Title','方正小标宋简体',22,32),('Heading 1','黑体',16,28),('Heading 2','楷体',16,28),('Caption','宋体',12,20),('Body Text','仿宋',14,24)]:
     style=doc.styles[name]
     style.font.name=font
     style.element.get_or_add_rPr().get_or_add_rFonts().set(qn('w:eastAsia'),font)
     style.font.size=Pt(size)
     style.font.color.rgb=RGBColor(0,0,0)
     style.font.bold=False
-    style.paragraph_format.line_spacing=Pt(28 if name!='Caption' else 20)
+    style.paragraph_format.line_spacing=Pt(line)
     style.paragraph_format.space_before=Pt(0)
     style.paragraph_format.space_after=Pt(0)
     style.paragraph_format.first_line_indent=Pt(32 if name=='Normal' else 0)
@@ -37,51 +40,126 @@ for name in ['Heading 1','Heading 2']:
     doc.styles[name].paragraph_format.keep_with_next=True
 for border in list(doc.styles.element.iter(qn('w:pBdr'))):
     border.getparent().remove(border)
-footer=s.footer.paragraphs[0];footer.alignment=1
-footer.style=doc.styles['Caption']
+footer=s.footer.paragraphs[0];footer.alignment=1;footer.style=doc.styles['Caption']
 footer.add_run('— ')
 field=OxmlElement('w:fldSimple');field.set(qn('w:instr'),'PAGE');footer._p.append(field)
 footer.add_run(' —')
 doc.core_properties.title='企业AI智能运维平台操作手册'
-doc.core_properties.subject='平台操作与监控管理'
-doc.core_properties.author='企业运维管理中心'
+doc.core_properties.subject='功能说明 操作步骤 结果核验 常见问题'
+doc.core_properties.author=''
 doc.core_properties.keywords='运维 监控 操作手册'
-chapters=[
-('一、平台登录','login','使用账号、密码表单进入企业运维工作台。',['访问平台地址，输入账号和密码。','账号至少３位，密码至少６位。','点击“登录”；退出使用账户菜单。'],'登录仅作本地表单校验，不提供服务端身份认证；不得输入其他系统的真实密码。'),
-('二、工作台与业务导航','overview','顶部业务导航与左侧功能菜单共同组织操作入口。',['查看资源、风险和执行情况。','通过顶部“监控中心”切换区域。','窄屏使用左上角导航按钮。'],'所有业务数据为本地样本快照，不代表实时采集结果。'),
-('三、统一监控总览','monitor-overview','集中查看基础设施与应用服务的监控分布。',['进入“监控中心—监控总览”。','核对监控对象和关注对象数量。','点击分类卡片查看监控明细。'],'总览按六类对象汇总；关注状态与对象快照保持一致。'),
-('四、主机监控','monitor-hosts','检查主机处理器、内存、磁盘和系统负载。',['进入“主机监控”，搜索对象。','按健康状态筛选异常主机。','点击“查看详情”检查趋势。'],'详情支持６、１２、２４小时时间范围，并可跳转资源台账。'),
-('五、应用服务监控','monitor-applications','查看请求速率、响应延迟、错误率与实例数量。',['进入“应用服务”，检索服务。','重点检查Ｐ９５延迟和错误率。','打开详情，比较各指标趋势。'],'延迟使用毫秒，流量使用每秒请求数；指标来自样本快照。'),
-('六、数据库监控','monitor-databases','检查查询负载、连接使用率、复制延迟和缓存命中率。',['进入“数据库监控”。','按名称或业务域检索实例。','打开详情，核对连接及复制指标。'],'对连接池高使用率和复制延迟较大的对象优先排查。'),
-('七、网络设备监控','monitor-network','检查入站和出站流量、丢包率以及链路延迟。',['进入“网络设备”。','筛选“需要关注”的设备。','查看详情并核对丢包和延迟。'],'流量单位为Ｍｂｐｓ，延迟单位为毫秒。'),
-('八、容器集群监控','monitor-clusters','查看集群节点、运行容器组及资源分配情况。',['进入“容器集群”。','查看节点数及运行Ｐｏｄ数量。','打开详情，检查资源分配趋势。'],'资源分配率用于说明快照容量，不执行调度或扩缩容。'),
-('九、接口可用性检查','monitor-availability','查看接口可用率、响应时间和证书剩余有效期。',['进入“接口可用性”。','按接口地址或名称检索。','核对响应时间与证书剩余天数。'],'接口地址为样本标识；页面不会向目标地址发起探测。'),
-('十、日志检索','monitor-logs','按服务、关键字和日志级别检索结构化事件。',['进入“日志检索”，输入关键字。','选择日志级别以缩小结果范围。','查看详情，核对追踪编号。'],'共提供６０条样本记录；无结果时可清除筛选。'),
-('十一、告警规则管理','monitor-rules','维护主机、接口、数据库等监控对象的阈值配置。',['进入“告警规则”。','点击“编辑阈值”，填写正数。','保存规则；取消时保持原配置。'],'规则仅保存在当前浏览器，不下发采集端，也不重新计算已有告警。'),
-('十二、资源台账与指标','assets','按业务域查看资源信息、运行状态和容量。',['搜索资源名称或地址。','打开详情，查看关联告警。','跳转“指标监测”检查趋势。'],'台账包含２４项资源；表格可在自身容器内横向滚动。'),
-('十三、指标趋势检查','metrics','按资源和时间范围检查处理器与内存趋势。',['选择目标资源。','切换６、１２、２４小时时间范围。','将鼠标移至曲线查看数值。'],'曲线为本地构造的模拟趋势，不表示现场采集值。'),
-('十四、告警处置','incident','告警按待处置、处理中和已关闭三个状态管理。',['搜索并打开ＩＮＣ－１２０１。','点击“确认告警”进入处理中。','处置完成后确认关闭告警。'],'关闭需确认，取消不改变状态；已关闭告警不可再次确认。'),
-('十五、智能分析','assistant','智能助手提供高负载、接口延迟和健康巡检分析入口。',['选择“高ＣＰＵ应急排查”。','查看告警证据和参考知识。','按需要进入关联流程。'],'回答为预设模拟分析，不调用真实模型，不作为生产诊断结论。'),
-('十六、自动化流程','automation','流程按标准步骤组织健康巡检和异常排查作业。',['选择流程，点击“模拟执行”。','阅读确认信息后确认或取消。','完成后打开关联执行记录。'],'流程不会连接设备或执行远程命令，取消不会产生记录。'),
-('十七、执行记录','executions','通过执行编号、时间和结果追溯流程操作。',['进入“执行记录”。','核对流程名称和执行时间。','刷新页面，检查记录保留情况。'],'初始６条记录，最多保留１００次模拟执行；完成不代表真实作业成功。'),
-('十八、知识维护','knowledge','知识文档支持检索、阅读、新建与修改。',['按标题检索并打开知识。','点击“编辑文档”修改后保存。','新建时填写必填标题和正文。'],'编辑只修改当前语言；保存失败时保留文本副本。'),
-('十九、个人设置与数据恢复','account','账户菜单提供语言、主题、数据恢复和退出入口。',['选择中英文语言或深浅主题。','恢复数据前备份需保留的文本。','确认恢复或取消，再核对结果。'],'恢复会替换本浏览器的业务记录；监控规则单独保存，不随业务数据恢复。'),
-('二十、平台信息与使用说明','about','平台说明提供版本、数据范围和软件下载入口。',['核对当前运行版本。','需要时下载操作手册。','软件许可和对应源码见下载入口。'],'业务状态仅在当前浏览器保存；更换访问地址或清理站点数据后，原状态不可读取。'),
-]
-p=doc.add_paragraph('企业AI智能运维平台\n操作手册','Title');p.alignment=1
-for text in ['企业运维管理中心',f'版本：{args.version}',f'访问地址：{args.url}','2026年10月']:
-    p=doc.add_paragraph(text);p.alignment=1;p.paragraph_format.first_line_indent=0;p.paragraph_format.space_before=Pt(28)
-doc.add_page_break();doc.add_heading('目　录',1)
-for i,(title,*_) in enumerate(chapters):
-    p=doc.add_paragraph(f'{title}　{i+3}');p.paragraph_format.first_line_indent=0
-for title,shot,intro,items,result in chapters:
-    doc.add_page_break();doc.add_heading(title,1)
-    doc.add_paragraph(intro)
-    for i,item in enumerate(items,1):doc.add_paragraph(f'{i}. {item}')
-    path=args.screenshots/f'{shot}.png'
-    with Image.open(path) as im:width=min(15.6,7.2*im.width/im.height)
-    p=doc.add_paragraph();p.paragraph_format.first_line_indent=0;p.paragraph_format.line_spacing=1;p.alignment=1
+NUMBERS=['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十']
+
+def para(text):
+    return doc.add_paragraph(text)
+
+def new_heading(text):
+    p=doc.add_heading(text,1)
+    p.paragraph_format.page_break_before=True
+    return p
+
+def figure(name, caption, height=8):
+    path=args.screenshots/f'{name}.png'
+    with Image.open(path) as im:
+        width=min(15.6,height*im.width/im.height)
+    p=doc.add_paragraph();p.paragraph_format.first_line_indent=0
+    p.paragraph_format.line_spacing=1;p.paragraph_format.keep_with_next=True;p.alignment=1
     p.add_run().add_picture(str(path),width=Cm(width))
-    p=doc.add_paragraph(f'图　{title.split("、",1)[1]}','Caption');p.alignment=1
-    doc.add_paragraph(result)
+    # Alt text makes the figure identifiable in screen readers and Word.
+    for node in p._p.iter(qn('wp:docPr')): node.set('descr',caption)
+    p=doc.add_paragraph(caption,'Caption');p.alignment=1
+
+def field_table(fields):
+    table=doc.add_table(rows=0,cols=2)
+    table.alignment=WD_TABLE_ALIGNMENT.CENTER;table.autofit=False
+    table.columns[0].width=Cm(3.3);table.columns[1].width=Cm(12.3)
+    props=table._tbl.tblPr
+    borders=OxmlElement('w:tblBorders')
+    for side in ['top','left','bottom','right','insideH','insideV']:
+        el=OxmlElement(f'w:{side}');el.set(qn('w:val'),'single');el.set(qn('w:sz'),'4');el.set(qn('w:color'),'D9D9D9');borders.append(el)
+    props.append(borders)
+    for index,(label,value) in enumerate([('字段或区域','含义与使用范围')]+[tuple(f.split('：',1)) for f in fields]):
+        row=table.add_row()
+        # Keep each short field definition intact; never use fixed row heights.
+        cant=OxmlElement('w:cantSplit');row._tr.get_or_add_trPr().append(cant)
+        if index==0:
+            repeat=OxmlElement('w:tblHeader');row._tr.get_or_add_trPr().append(repeat)
+        for col,(cell,text) in enumerate(zip(row.cells,[label,value])):
+            cell.width=Cm(3.3 if col==0 else 12.3);cell.vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            cell.text=text
+            pr=cell._tc.get_or_add_tcPr();margin=OxmlElement('w:tcMar')
+            for side in ['top','bottom','left','right']:
+                item=OxmlElement(f'w:{side}');item.set(qn('w:w'),'80');item.set(qn('w:type'),'dxa');margin.append(item)
+            pr.append(margin)
+            if index==0:
+                shade=OxmlElement('w:shd');shade.set(qn('w:fill'),'F0F0F0');pr.append(shade)
+            for p in cell.paragraphs:
+                p.paragraph_format.first_line_indent=0;p.paragraph_format.line_spacing=Pt(20)
+                for run in p.runs:
+                    run.font.size=Pt(13);run.font.name='仿宋'
+                    run._element.get_or_add_rPr().get_or_add_rFonts().set(qn('w:eastAsia'),'仿宋')
+    doc.add_paragraph().paragraph_format.line_spacing=Pt(6)
+
+p=doc.add_paragraph('企业AI智能运维平台\n操作手册','Title');p.alignment=1
+for text in ['详细操作版',f'适用系统版本 {args.version}',f'访问地址 {args.url}','2026年10月']:
+    p=para(text);p.alignment=1;p.paragraph_format.first_line_indent=0;p.paragraph_format.space_before=Pt(28)
+# Fixed two-page contents prevents page-number updates from shifting body pagination.
+for start in [0,10]:
+    new_heading('目　录' if start==0 else '目　录　续')
+    entries=([('使用说明','使用说明')] if start==0 else [])+[(f'{NUMBERS[i]}、{c["title"]}',f'{NUMBERS[i]}、{c["title"]}') for i,c in enumerate(CHAPTERS) if start<=i<start+10]
+    if start==10:
+        for title in ['附录　操作核验清单','附录　阈值保存结果','附录　告警关闭结果','附录　流程完成结果','附录　知识编辑填写','附录　页面入口图示']:
+            entries.append((title,title))
+    for title,key in entries:
+        p=para(f'{title}　{pages.get(key,"待核定")}');p.paragraph_format.first_line_indent=0;p.paragraph_format.space_after=Pt(8)
+new_heading('使用说明')
+for text in [
+ '本手册面向使用企业AI智能运维平台的运维操作人员，说明登录、监控检查、告警处置、流程操作和知识维护的方法。按章节完成操作后，应核对页面结果，不只确认按钮已经点击。',
+ '全书按“功能与字段—操作步骤—结果核验”组织。截图采用中文浅色界面，重点展示列表筛选、详情窗口与确认步骤；不同浏览器的字体、时间格式和校验提示可能略有差异。',
+ '系统使用本地样本快照、模拟指标和预设分析。操作数据保存在当前浏览器，不跨电脑同步。登录仅检查本地输入形式，流程不连接实际设备，阈值不下发到采集端。',
+ '首次使用建议依次完成登录、总览浏览、主机详情检查、告警确认、流程执行、执行记录核对和知识新增。需要保留的文本，应在恢复数据或清理浏览器前另存副本。',
+ '文中对象值与数量均以初始样本为基准。部分截图展示操作后的状态，例如阈值改为 88、告警已关闭或新增执行记录；这些变化不代表真实生产系统发生变更。',
+ '截图中的账号仅为输入示例，密码为临时输入；平台不存在统一固定口令。图片中的数据时间取自独立截图会话，不作为本手册的发布日期。',
+
+]:para(text)
+for i,c in enumerate(CHAPTERS):
+    title=f'{NUMBERS[i]}、{c["title"]}'
+    new_heading(title);para(c['intro'])
+    doc.add_heading('（一）功能与字段',2);field_table(c['fields'])
+    doc.add_heading('（二）操作步骤',2)
+    for step,text in enumerate(c['steps'],1):para(f'{step}. {text}')
+    new_heading(f'{NUMBERS[i]}、{c["title"]}　操作图示')
+    figure('knowledge-saved' if c['detail']=='knowledge-new' else c['detail'],f'图 {i+1}－1　{"新增知识保存后的详情" if c["detail"]=="knowledge-new" else c["captions"][1]}',height=11)
+    doc.add_heading('（三）结果核验与注意事项',2)
+    for text in c['checks']:
+        p=doc.add_paragraph(text,'Body Text');p.paragraph_format.first_line_indent=Pt(28)
+new_heading('附录　操作核验清单')
+for title,items in [
+ ('（一）一次主机高负载检查',[
+ '在主机监控搜索 order-api-01，打开近 6 小时详情，核对名称、地址和 CPU 指标。',
+ '通过资源台账查看 res-1 与 INC-1201，再到告警详情确认状态。若事件已关闭，不要期待确认按钮仍可点击。',
+ '在智能助手查看高 CPU 场景，阅读证据和知识；打开关联流程并确认一次本地执行。',
+ '核对执行列表新增记录，再新建巡检知识，填写对象、检查内容与结论。流程完成不代表真实故障已经处理。']),
+ ('（二）一次规则修改与复查',[
+ '记录 CPU 规则原值 85，将其改为 88 并保存。刷新后核对新值仍存在。',
+ '确认既有告警状态没有自动改变；这是规则与样本快照相互独立的结果。',
+ '需要还原时，将 CPU 规则重新改为 85。不要通过恢复业务数据来尝试恢复规则。']),
+ ('（三）反馈问题时提供的信息',[
+ '记录访问地址、运行版本、页面名称、发生时间、对象编号及重现步骤。保留错误提示与截图，说明是否刷新或清理站点数据。',
+ '反馈材料不包含真实密码或令牌；下载问题需补充浏览器下载提示。']),
+]:
+    doc.add_heading(title,2)
+    for j,text in enumerate(items,1):
+        p=doc.add_paragraph(f'{j}. {text}','Body Text');p.paragraph_format.first_line_indent=Pt(28)
+for title,shot,caption,text in [
+ ('附录　阈值保存结果','monitor-rules-saved','图 附－1　刷新后 CPU 阈值保持为 88','对照第十一章，保存阈值后回到列表并刷新，核对 CPU > 88 %。该修改不会重新计算已有告警。'),
+ ('附录　告警关闭结果','incident-closed','图 附－2　告警状态和按钮在关闭后的变化','对照第十四章，确认关闭后核对“已关闭”标签及不可用按钮。告警状态改变不表示主机负载已经恢复。'),
+ ('附录　流程完成结果','automation-completed','图 附－3　确认执行后的完成提示','对照第十六章，在所选流程卡片查看完成提示，再到执行记录核对新增记录；仅打开确认窗口不会生成记录。'),
+ ('附录　知识编辑填写','knowledge-new','图 附－4　标题与正文的填写范围','对照第十八章，先填写标题，再按检查对象、检查内容和核验记录组织正文；确认无误后保存，不保存则选择取消。'),
+]:
+    new_heading(title);para(text);figure(shot,caption,height=16)
+for start in range(0,len(CHAPTERS),2):
+    new_heading('附录　页面入口图示' if start==0 else f'附录　页面入口图示　{start//2+1}')
+    for offset,c in enumerate(CHAPTERS[start:start+2],start+1):
+        figure(c['shot'],f'图 附－{offset+4}　{c["captions"][0]}',height=8.8)
 args.output.parent.mkdir(parents=True,exist_ok=True);doc.save(args.output);print(args.output)
