@@ -188,6 +188,8 @@ test('monitor filters, details, log search and persisted rule editing', async ({
   page,
 }) => {
   await enter(page);
+  await page.goto('/monitoring/databases');
+  await expect(page.locator('tbody tr').nth(4)).toContainText('98.9%');
   await page.goto('/monitoring/hosts');
   await expect(page.locator('tbody tr')).toHaveCount(16);
   await page

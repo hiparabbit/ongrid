@@ -122,7 +122,7 @@ export function monitoringData(
         1620 + i * 170,
         i === 0 ? 89 : 32 + i * 5,
         i === 0 ? 420 : 12 + i * 3,
-        98.1 + i * 0.2,
+        +(98.1 + i * 0.2).toFixed(1),
       ]),
     },
     network: {
