@@ -5,6 +5,7 @@ LibreOffice, Poppler and pdf2image. Render and inspect every page after generati
 """
 import argparse
 from pathlib import Path
+from PIL import Image
 from docx import Document
 from docx.shared import Cm, Pt, RGBColor
 from docx.oxml import OxmlElement
@@ -64,7 +65,10 @@ def screenshot(name, caption):
     path = args.screenshots / (name + '.png')
     if not path.exists():
         raise FileNotFoundError(path)
-    doc.add_picture(str(path), width=Cm(17))
+    with Image.open(path) as image:
+        width = min(17, 11 * image.width / image.height)
+    doc.add_picture(str(path), width=Cm(width))
+    doc.paragraphs[-1].alignment = 1
     doc.add_paragraph(caption, style='Caption')
 
 def page(title, intro, items, image=None, caption=None, result=None):
