@@ -34,6 +34,9 @@ for name, size in [('Title', 27), ('Heading 1', 19), ('Heading 2', 13)]:
     doc.styles[name].font.bold = True
 for name in ['Heading 1', 'Heading 2']:
     doc.styles[name].paragraph_format.keep_with_next = True
+# Remove Word template borders, including the inherited Title blue rule.
+for border in list(doc.styles.element.iter(qn('w:pBdr'))):
+    border.getparent().remove(border)
 footer = section.footer.paragraphs[0]
 footer.alignment = 2
 footer.add_run('企业AI 智能运维平台  |  ')
@@ -48,8 +51,14 @@ def paragraph(text):
     doc.add_paragraph(text)
 
 def steps(items):
+    numbering = doc.part.numbering_part.element
+    base_id = doc.styles['List Number'].element.pPr.numPr.numId.val
+    base = numbering.xpath(f'./w:num[@w:numId="{base_id}"]/w:abstractNumId')[0].val
+    num = numbering.add_num(base)
+    num.add_lvlOverride(ilvl=0).add_startOverride(1)
     for item in items:
-        doc.add_paragraph(item, style='List Number')
+        p = doc.add_paragraph(item, style='List Number')
+        p._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num.numId
 
 def screenshot(name, caption):
     path = args.screenshots / (name + '.png')

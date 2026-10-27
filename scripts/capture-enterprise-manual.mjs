@@ -15,7 +15,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   const shot = async name => {
     await page.locator('body').ariaSnapshot();
-    await page.screenshot({ path: resolve(output, `${name}.png`), animations: 'disabled' });
+    await page.screenshot({ path: resolve(output, `${name}.png`), animations: 'disabled', fullPage: true });
   };
   await page.goto('/');
   await page.getByRole('button', { name: '进入演示', exact: true }).waitFor();
