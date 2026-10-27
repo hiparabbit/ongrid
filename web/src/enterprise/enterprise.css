@@ -1088,3 +1088,33 @@ html.dark {
 .ex-content:focus-visible {
   outline: none;
 }
+/* Keep Portal controls on the same palette as the workspace. */
+html.enterprise-ui.light {
+  --bg: 244 247 251;
+  --card: 255 255 255;
+  --card-soft: 255 255 255 / 0.85;
+  --border: 227 234 243;
+  --border-soft: 227 234 243 / 0.9;
+  --text: 24 44 72;
+  --text-muted: 85 105 130;
+  --text-faint: 101 119 142;
+}
+html.enterprise-ui.dark {
+  --bg: 16 27 44;
+  --card: 23 37 58;
+  --card-soft: 23 37 58 / 0.85;
+  --border: 43 60 84;
+  --border-soft: 43 60 84 / 0.9;
+  --text: 228 237 249;
+  --text-muted: 160 177 200;
+  --text-faint: 145 164 188;
+}
+html.enterprise-ui .og-button[data-variant='primary'] {
+  background: #1463e0;
+  border-color: #1463e0;
+  color: white;
+}
+html.enterprise-ui .og-button[data-variant='primary']:hover:not(:disabled) {
+  background: #1155c2;
+  border-color: #1155c2;
+}

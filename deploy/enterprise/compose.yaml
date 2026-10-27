@@ -24,3 +24,8 @@ services:
       options:
         max-size: 10m
         max-file: '3'
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 10.253.57.0/28

@@ -32,7 +32,7 @@ make package-enterprise-demo
 
 ## 测试服务器发布
 
-服务器使用 Ubuntu 24.04、Docker Compose，独立目录 `/opt/enterprise-ai-demo`，独立项目 `enterprise-ai-demo`。仅发布 18860 端口，不修改既有 nginx、80 端口或其他容器。发布前检查 `ss -lnt sport = :18860`，确认没有不属于本项目的服务。服务器现有业务较多，静态容器限制 1 CPU、512 MiB 内存与 100 个进程。
+服务器使用 Ubuntu 24.04、Docker Compose，独立目录 `/opt/enterprise-ai-demo`，独立项目 `enterprise-ai-demo`。仅发布 18860 端口，不修改既有 nginx、80 端口或其他容器。发布前检查 `ss -lnt sport = :18860`，确认没有不属于本项目的服务。服务器默认 Docker 地址池已耗尽；本项目使用检查无重叠的独立网段 `10.253.57.0/28`。迁移到其他环境前重新检查路由和 Docker IPAM，不修改宿主机全局地址池。服务器现有业务较多，静态容器限制 1 CPU、512 MiB 内存与 100 个进程。
 
 执行 `make deploy-enterprise-demo` 上传完整发布目录并部署到 `releases/<VERSION>`。脚本会检查端口、配置和健康状态，更新 current，并保留 previous 链接；不要指向未经授权的其他环境。底层在发布目录运行以下命令：
 

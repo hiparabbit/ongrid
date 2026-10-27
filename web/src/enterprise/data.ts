@@ -128,7 +128,7 @@ export function seed(now = new Date()): Sandbox {
     incidents: titles.map((title, i) => ({
       id: `INC-${1201 + i}`,
       title,
-      resourceId: resources[i].id,
+      resourceId: resources[[0, 1, 4, 3, 5, 6, 7, 8, 9, 10, 16, 17][i]].id,
       severity: i < 2 ? 'critical' : i < 7 ? 'warning' : 'info',
       status: i < 6 ? 'open' : i < 9 ? 'acknowledged' : 'closed',
       time: new Date(now.getTime() - (i + 1) * 840000).toISOString(),
